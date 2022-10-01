@@ -1,0 +1,260 @@
+---
+title: "F&B Slaid PPT"
+author: "F&B Dept"
+date: "`r format(Sys.Date(),'%d %b %Y')`"
+output: powerpoint_presentation
+params:
+  att.tb: att_tb
+  bln: i
+  bqt.tb: bqt_tb
+  exp.tb: exp_tb
+  part.tb: part_tb
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	comment = NA,
+	fig.width = 6.0, fig.height = 4.5
+)
+
+library(tidyverse)
+library(knitr)
+library(lubridate)
+library(rdrop2)
+
+# Dataset for report ----
+# att_tb <- params$att.tb
+# bqt_tb <- params$bqt.tb
+# exp_tb <- params$exp.tb
+# part_tb <- params$part.tb
+mth <- month(today()) # params$bln
+
+# get file from drop ----
+token <- readRDS("token.rds")
+drop_download(path = "/wp/fb.RData",overwrite = TRUE,dtoken = token)
+load("fb.RData")
+
+bul <- case_when (mth == 1 ~ "Januari",
+                  mth == 2 ~ "Februari",
+                  mth == 3 ~ "March",
+                  mth == 4 ~ "April",
+                  mth == 5 ~ "Mei",
+                  mth == 6 ~ "Jun",
+                  mth == 7 ~ "Julai",
+                  mth == 8 ~ "Ogos",
+                  mth == 9 ~ "September",
+                  mth == 10 ~ "Oktober",
+                  mth == 11 ~ "November",
+                  mth == 12 ~ "Disember"  
+)
+```
+
+# FOOD AND BEVERAGE DEPARTMENT 
+## **`r paste0(bul,"/19")`**
+## MONTHLY REPORT
+
+# ISI KANDUNGAN
+
+1.    PENGENALAN
+      DEFINISI & TANGGUNGJAWAB PERKHIDMATAN
+      MAKANAN DAN MINUMAN
+      
+2.    CARTA ORGANISASI DAN KEDUDUKAN BAGI
+      KAKITANGAN TETAP DAN PART-TIMER
+      
+3.    REVENUE REPORT
+      HASIL KUTIPAN BAGI `r paste0(bul,"/20")`
+      - BANQUET/DEWAN MAKAN PEGAWAI/RENDEVOUS
+      
+4.    PERBELANJAAN BULANAN DAN KOS SEMASA JABATAN
+      MAKANAN DAN MINUMAN
+      (STORE REQUISITION - FOOD & GENERAL)
+      
+5.    KESIMPULAN KESELURUHAN
+
+# PENGENALAN
+      DEFINISI & TANGGUNGJAWAB PERKHIDMATAN
+      MAKANAN DAN MINUMAN
+
+# OBJEKTIF
+
+a.  **Mengenalpasti prestasi pendapatan, perbelanjaan dan penugasan pekerja sementara**.    
+b.  **Mengetahui tahap keberkesanan kaedah dan langkah pencegahan**.    
+c.  **Merangka tindakan dan pembaikkan kelemahan-kelemahan yang dikenal pasti**.      
+d.  **Memperkenalkan penambahbaikkan untuk memberi nilai tambah**.    
+
+# CARTA ORGANISASI DAN KEDUDUKAN BAGI
+      KAKITANGAN TETAP DAN PART-TIMER
+
+### Carta 1 - Penugasan Staf (Mingguan)
+
+```{r carta-1}
+att_tb %>% 
+summarise("DUTY"=sum(DUTY, na.rm=TRUE),"RD"=sum(RD, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),"AL"=sum(AL, na.rm=TRUE),
+            "EL"=sum(EL, na.rm=TRUE),"MC"=sum(MC, na.rm=TRUE),
+            "PH"=sum(PH, na.rm=TRUE),"RPH"=sum(RPH, na.rm=TRUE),
+            "CH"=sum(CH, na.rm=TRUE),"UPL"=sum(UPL, na.rm=TRUE),
+            "CL"=sum(CL, na.rm=TRUE),"NS"=sum(NS, na.rm=TRUE),
+            "AB"=sum(AB, na.rm=TRUE),"ML"=sum(ML, na.rm=TRUE),
+            "RN"=sum(RN, na.rm=TRUE),"TM"=sum(TM, na.rm=TRUE)) %>%
+  tidyr::gather() %>% # tidyr::gather("JENIS","JUMLAH",2:3)
+  ggplot(aes(x = key, fill = key, na.rm = TRUE, y = value)) +
+  geom_bar(stat="identity") +
+  geom_text(aes(label=format(value,digits = 3,big.mark=",")),vjust=1.5, color="black",
+            size=3.5) +
+  xlab("Kategori") + ylab("Bil") +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5))
+```
+
+# Jadual-1
+
+```{r}
+
+att_tb %>% 
+  mutate("MGU" = isoweek(DATE)) %>% 
+  group_by(MGU) %>% 
+summarise("DUTY"=sum(DUTY, na.rm=TRUE),"RD"=sum(RD, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),"AL"=sum(AL, na.rm=TRUE),
+            "EL"=sum(EL, na.rm=TRUE),"MC"=sum(MC, na.rm=TRUE),
+            "PH"=sum(PH, na.rm=TRUE),"RPH"=sum(RPH, na.rm=TRUE),
+            "CH"=sum(CH, na.rm=TRUE),"UPL"=sum(UPL, na.rm=TRUE),
+            "CL"=sum(CL, na.rm=TRUE),"NS"=sum(NS, na.rm=TRUE),
+            "AB"=sum(AB, na.rm=TRUE),"ML"=sum(ML, na.rm=TRUE),
+            "RN"=sum(RN, na.rm=TRUE),"TM"=sum(TM, na.rm=TRUE)) %>%
+  kable(caption = "Penugasan Staf dan Kategori")
+
+```
+
+# REVENUE REPORT
+      HASIL KUTIPAN BAGI `r paste0(bul,"/19")`
+      - BANQUET/DEWAN MAKAN PEGAWAI/RENDEVOUS
+
+## Jadual 2 - Pendapatan / Perbelanjaan dan Jenis (Mingguan)
+
+```{r jadual 2}
+bqt.type %>% 
+  kable()
+```
+
+## Carta 2 - Bilangan Majlis dan Acara (Mingguan)
+
+```{r carta-2}
+bqt_tb %>%
+  filter(month(DATE) == mth) %>%
+  mutate("MGU" = isoweek(DATE),
+         "JENIS" = sapply(EVENT, function (t){
+           case_when (any(type(t,smr)) ~ "Seminar/Mesyuarat",
+                      any(type(t,wed)) ~ "Majlis Perkahwinan",
+                      any(type(t,mmr)) ~ "MMR",
+                      TRUE ~ "Am")
+         })) %>%
+  group_by(JENIS,MGU) %>%
+  summarise("NOEVENT" = n()) %>% 
+  ggplot(aes(x = MGU, fill = JENIS, na.rm = TRUE, y = NOEVENT)) +
+  geom_bar(stat="identity",position = position_dodge(width = 0.5)) +
+  geom_text(aes(label=format(NOEVENT,digits = 3,big.mark=",")), vjust=1.6, color="black",
+            size=3.5) +
+  xlab("Minggu") + ylab("Bil") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  labs(title = "Bilangan Majlis dan Acara",
+              subtitle = "(Mingguan)",
+              caption = "Data source: F&B")
+```
+
+### Carta 2A - Pendapatan Majlis dan Acara (Mingguan)
+
+```{r carta 2A}
+# Revenue of Event by type
+bqt_tb %>%
+  filter(month(DATE) == mth) %>%
+  mutate("MGU" = isoweek(DATE),
+         "JENIS" = sapply(EVENT, function (t){
+           case_when (any(type(t,smr)) ~ "Seminar/Mesyuarat",
+                      any(type(t,wed)) ~ "Majlis Perkahwinan",
+                      any(type(t,mmr)) ~ "MMR",
+                      TRUE ~ "Am")
+         })) %>% 
+  group_by(MGU,JENIS) %>% 
+  summarise("REVENUE" = sum(REVENUE, na.rm=TRUE)) %>%
+  tschart(y = "REVENUE", fillvar = "JENIS")
+```
+
+### Carta 2B - Pendapatan dan Bayaran PSM (Mingguan)
+
+```{r carta 2B}
+# Revenue and Exp by Week
+bqt_tb %>%
+  filter(month(DATE) == mth) %>%
+  inner_join(psm_tb, by = "EO") %>%
+  mutate("MGU" = isoweek(DATE.x)) %>%
+  group_by(MGU) %>%
+  summarise("PENDAPATAN" = sum(REVENUE, na.rm=TRUE),
+            "BAYARAN (PSM)" = sum(PSM * RATE * 8)) %>%
+  tidyr::gather("JENIS","VALUE",2:3) %>%
+  tschart(y = "VALUE", fillvar = "JENIS")
+```
+
+## PERBELANJAAN BULANAN DAN KOS SEMASA JABATAN
+      MAKANAN DAN MINUMAN
+      (STORE REQUISITION - FOOD & GENERAL)
+
+### Jadual 3 - Perbelanjaan dan Jenis (Mingguan)
+
+```{r jadual 3, eval=FALSE, include=FALSE}
+exp.sum %>% 
+  group_by(MGU, JENIS) %>%
+  summarise("JUMLAH" = sum(JUMLAH)) %>%
+  spread(JENIS,JUMLAH) %>% 
+  kable()
+```
+
+### Carta 3 - Perbelanjaan dan Jenis (Mingguan)
+
+```{r carta 3, eval=FALSE, include=FALSE}
+exp.sum %>%
+  group_by(JENIS,MGU) %>%
+  summarise("BELANJA" = sum(JUMLAH)) %>% 
+  ggplot(aes(x = factor(MGU), fill = JENIS, na.rm = TRUE, y = BELANJA)) +
+  geom_bar(stat="identity",position = position_dodge(width = 0.5)) +
+  geom_text(aes(label=format(BELANJA,digits = 3,big.mark=",")),
+            hjust=0.1, vjust=0.5, color="black",
+            size=3.5) +
+  xlab("Minggu") + ylab("JUMLAH(RM)") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+## 4.    Ringkasan Pekerja Separuh Masa
+
+### Jadual 4 - Pekerja Separuh Masa (PSM) (Mingguan)
+
+```{r jadual 4}
+
+psm_tb %>%
+  filter(month(DATE) == mth) %>%
+  mutate("MGU" = isoweek(DATE)) %>% 
+  group_by(MGU) %>% 
+  summarise( "ACARA" = n(),"PSM" = sum(PSM)) %>% 
+  kable()
+```
+
+### Carta 4 - Pekerja Separuh Masa (PSM) (Mingguan)
+
+```{r carta 4}
+psm_tb %>%
+  filter(month(DATE) == mth) %>%
+  mutate("MGU" = isoweek(DATE)) %>% 
+  group_by(MGU) %>% 
+  summarise("PSM" = sum(PSM), "ACARA" = n()) %>%
+  tidyr::gather("JENIS","JUMLAH",2:3) %>%
+  tschart(y = "JUMLAH", fillvar = "JENIS")
+```
+
+## Rumusan dan Cadangan
+
+# Terima Kasih

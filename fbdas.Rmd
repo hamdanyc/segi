@@ -1,0 +1,76 @@
+---
+title: "F&B Dashboard"
+author: "F&B Analyst"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+library(tidyverse)
+library(knitr)
+library(lubridate)
+```
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+      # Input: Selector for details plot ----
+      selectInput("var", "Pilih (Kategori):",
+                  c("Seminar, Bengkel dan Hospitaliti",
+                    "Majlis Perkahwinan",
+                    "MMR",
+                    "Am"))
+```
+
+Prestasi setiap aktiviti.
+
+Row
+-----------------------------------------------------------------------
+
+### Kategori
+    
+```{r}
+
+varInput <- reactive({
+  kpi_tb <- df()
+  switch(input$var,
+         "Waktu biasa" = emp_tb$rh,
+         "Lebih-masa" = emp_tb$ot,
+         "Sakit" = emp_tb$sl,
+         "Cuti-rehat" = emp_tb$vc)
+})
+
+col = colorRampPalette(c("red", "white", "darkblue"), space="Lab")(10)
+renderPlot({
+    p = par(mai=c(0,0,0,0))
+    heatmapBC(BicatYeast, res, number=num(), xlab="", ylab="",
+      order=TRUE, useRaster=TRUE, col=col)
+    par(p)
+})
+```
+
+
+Row {.tabset}
+-----------------------------------------------------------------------
+
+### Parallel Coordinates
+    
+```{r}
+renderPlot(
+  parallelCoordinates(BicatYeast, res, number=num())
+)
+```
+   
+### Data for Selected Cluster
+
+```{r}
+# only display table for values in cluster 4
+renderTable(
+  BicatYeast[which(res@RowxNumber[, num()]), which(res@NumberxCol[num(), ])]
+)
+```

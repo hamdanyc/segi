@@ -1,0 +1,13 @@
+name: fbdash
+title: fbdash
+username:
+account: hamdan-yaccob
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2452914
+bundleId: 3268171
+url: https://hamdan-yaccob.shinyapps.io/fbdash/
+when: 1592145354.97867
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: 07_2019.xlsx|app.R|att_ts.RData|att.RData|attend.RData|biweekly_ts.xlsx|bqt.R|claimt.xlsx|dropBox.R|employee.xlsx|event.csv|fb.RData|fbatt.xlsx|fbbqt.xlsx|fbcat.R|fbdas.Rmd|fbData.R|fbexp.xlsx|fbmod.R|fbModel.R|fbpart.xlsx|fbppt.pptx|fbppt.Rmd|fbproc.R|fbread.R|fbreport.html|fbreport.Rmd|fbreportOld.Rmd|fbtable.xlsx|fbtime.R|fbtime.RData|fbTypeData.R|fbWeb.R|fbWebDrop.R|fbWebOld.R|file_show.xlsx|fileWidget.R|funType.R|JULY_2019.xlsx|oneDrive.R|patt.xlsx|report.Rmd|rph.xlsx|rules.csv|rules.R|rules.xlsx|stopwordMalay.RData|time_sh.xlsx|tsData.R|tsErr.R|tsPlot.R|tsproc.R|tsWeb.R|tx.xlsx|type.RDs|data/10_19.xlsx|data/7_19.xlsx|data/8_19.xlsx|data/9_19.xlsx|data/claimt.xlsx

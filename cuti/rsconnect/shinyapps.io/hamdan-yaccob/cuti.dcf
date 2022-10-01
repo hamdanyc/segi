@@ -1,0 +1,14 @@
+name: cuti
+title: cuti
+username:
+account: hamdan-yaccob
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6492377
+bundleId: 6034674
+url: https://hamdan-yaccob.shinyapps.io/cuti/
+when: 1655958060.02856
+lastSyncTime: 1655958060.02857
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: CopyOfcuti.RData|cuti_22.csv

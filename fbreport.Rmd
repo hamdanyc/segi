@@ -1,0 +1,444 @@
+---
+title: "Laporan F&B"
+author: "Nurul Amira Najwa"
+date: "`r Sys.Date()`"
+output: word_document
+params:
+  att.tb: att_tb
+  bln: i
+  bqt.tb: bqt_tb
+  df.tb: df_tb
+  exp.tb: exp_tb
+  psm.tb: psm_tb
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	comment = NA,
+	fig.width = 5.0, fig.height = 4.5
+)
+
+# Init ----
+library(tidyverse)
+library(knitr)
+library(lubridate)
+
+# Dataset for report ----
+att_tb <- params$att.tb
+bqt_tb <- params$bqt.tb
+exp_tb <- params$exp.tb
+psm_tb <- params$psm.tb
+df_tb <- params$df.tb
+mth <- params$bln
+
+bul <- case_when (mth == 1 ~ "Januari",
+                  mth == 2 ~ "Februari",
+                  mth == 3 ~ "March",
+                  mth == 4 ~ "April",
+                  mth == 5 ~ "Mei",
+                  mth == 6 ~ "Jun",
+                  mth == 7 ~ "Julai",
+                  mth == 8 ~ "Ogos",
+                  mth == 9 ~ "September",
+                  mth == 10 ~ "Oktober",
+                  mth == 11 ~ "November",
+                  mth == 12 ~ "Disember"  
+)
+
+# Fun chart ----
+tschart <- function(df, xvar = "MGU", yvar = "RD",
+                    fillvar = "factor(MGU)") {
+  ggplot(df,
+         aes_string(x = xvar, y = yvar, fill = fillvar, na.rm = TRUE),
+         environment = environment()) + 
+    geom_bar(stat="identity",position = position_dodge(width = 0.5)) +
+    geom_text(aes_string(label=format(yvar,digits = 3,big.mark=",")), hjust=0.1,
+              vjust=0.5, color="black",size=3.5) +
+    xlab("Minggu") + ylab(yvar) +
+    theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+    guides(fill=guide_legend(title="Minggu"))
+}
+
+# Fun type ----
+
+patt <- function(x){
+  df_tb %>% 
+  filter(cat == x) %>% 
+    select(item)
+}
+
+# pattern
+sta <- patt("sta")$item
+bev  <- patt("bev")$item
+smr <- patt("smr")$item
+wed <- patt("wed")$item
+mmr <- patt("mmr")$item
+
+type <- function(txt,pattern){
+  txt <- tolower(txt)
+  term <- str_replace_all(txt, " ","|")
+  lapply(term, function(x) str_detect(pattern, x)) %>% unlist()
+}
+```
+```{r pre-process}
+
+# banquet summary ----
+bqt.sum <- bqt_tb %>%
+  inner_join(psm_tb, by = "EO") %>% 
+  filter(month(DATE.x) == mth) %>% 
+  mutate("MGU" = isoweek(DATE.x),
+         "JENIS" = sapply(EVENT.x, function (t){
+           case_when (any(type(t,smr)) ~ "Seminar/Mesyuarat",
+                      any(type(t,wed)) ~ "Majlis Perkahwinan",
+                      any(type(t,mmr)) ~ "MMR",
+                      TRUE ~ "Am")
+         }),
+         "RATE" = case_when(JENIS == "MMR" ~ 9,
+                            TRUE ~ 8)) %>%
+  group_by(MGU,JENIS) %>%
+  summarise("PENDAPATAN" = sum(REVENUE, na.rm=TRUE),
+            "PERBELANJAAN" = sum(PSM * RATE * 8, na.rm=TRUE),
+            "NOEVENT" = n())
+
+bqt.type <- bqt.sum %>% 
+  group_by(JENIS) %>% 
+  summarise("JLH" = sum(PENDAPATAN))
+
+bqt.net <- sum(bqt.sum$PENDAPATAN) - sum(bqt.sum$PERBELANJAAN)
+
+# Staf summary ----
+part.sum <- psm_tb %>%
+  filter(month(DATE) == mth) %>%
+  summarise( "ACARA" = n(),"PSM" = sum(PSM))
+
+# Exp summary ----
+exp.sum <- exp_tb %>%
+  filter(month(DATE) == mth) %>% 
+  mutate("MGU" = isoweek(DATE),
+         "JUMLAH" = QTY * PRICE,
+         "JENIS" = sapply(exp_tb$ITEM, function (t){
+           case_when (any(type(t,sta)) ~ "ALAT TULIS",
+                      any(type(t,bev)) ~ "MAKANAN & MINUMAN",
+                      TRUE ~ "AM")
+         })) %>% 
+  group_by(MGU, JENIS) %>%
+  summarise("JUMLAH" = sum(JUMLAH))
+
+exp.type <- summarise(group_by(exp.sum,JENIS),"jlh" = sum(JUMLAH))
+```
+
+## Ringkasan Eksekutif
+
+@.   Jumlah pendapatan bagi bulan `r bul` adalah **`r paste("RM",format(sum(bqt.sum$PENDAPATAN),digits = 3,big.mark=","))`**. [Jumlah keseluruhan](#Penyata-Bankuet) setiap kategori iaitu `r paste(tolower(bqt.type$JENIS[1]),"( RM",format(bqt.type$JLH[1],digits = 3,big.mark=","),")")`,  `r paste(tolower(bqt.type$JENIS[2]),"( RM",format(bqt.type$JLH[2],digits = 3,big.mark=","),")")`,`r paste(tolower(bqt.type$JENIS[3]),"( RM",format(bqt.type$JLH[3],digits = 3,big.mark=","),")")` dan `r paste(tolower(bqt.type$JENIS[4]),"( RM",format(bqt.type$JLH[4],digits = 3,big.mark=","),")")`. Jumlah bayaran tuntutan Pekerja Separuh-masa (PSM) (perbelanjaan) adalah **`r paste("RM",format(sum(bqt.sum$PERBELANJAAN),digits = 3,big.mark=","))`**. Pendapatan bersih bagi bulan `r bul` adalah **`r paste("RM",format(bqt.net,digits = 3,big.mark=","))`**. Kategori **`r tolower(bqt.sum$JENIS[which.max(bqt.sum$PENDAPATAN)])`** mencatatkan hasil tertinggi (mingguan) iaitu berjumlah **`r paste("RM",format(max(bqt.sum$PENDAPATAN),digits = 3,big.mark=","))`**. Jumlah terendah (mingguan) iaitu **`r paste("RM",format(min(bqt.sum$PENDAPATAN),digits = 3,big.mark=","))`** untuk kategori **`r tolower(bqt.sum$JENIS[which.min(bqt.sum$PENDAPATAN)])`**. Nisbah **Pendapatan atas Perbelanjaan (RM) ** adalah **`r round(sum(bqt.sum$PENDAPATAN)/sum(bqt.sum$PERBELANJAAN),digits = 1)` untuk setiap RM 1**.
+
+@.	[Perbelanjaan keseluruhan jabatan F&B](#Penyata-Perbelanjaan) adalah **`r paste("RM",format(sum(exp.sum$JUMLAH),digits = 3, big.mark =","))`** di mana jumlah bagi **`r tolower(exp.type$JENIS[1])`** adalah **`r paste("RM",format(exp.type$jlh[1],digits = 3,big.mark = ","))`**, **`r tolower(exp.type$JENIS[2])`** adalah **`r paste("RM",format(exp.type$jlh[2],digits = 3,big.mark = ","))`** dan **`r tolower(exp.type$JENIS[3])`** adalah **`r paste("RM",format(exp.type$jlh[3],digits = 3,big.mark = ","))`**.
+
+@.  [Penglibatan PSM](#Ringkasan-Pekerja-Separuh-Masa) adalah seramai **`r part.sum$PSM`** orang dan jumlah acara adalah **`r part.sum$ACARA`**. Oleh itu, purata **PSM terhadap Acara (Bil)** adalah **`r format(part.sum$PSM/part.sum$ACARA,digits = 2)`** PSM untuk setiap acara.	Bilangan staf yang melepaskan jawatan **`r paste("(",sum(att_tb$RN, na.rm = TRUE),")")`** dan ditamatkan **`r paste("(",sum(att_tb$TM, na.rm = TRUE),")")`** orang.
+
+## Penugasan Staf (Keseluruhan)
+
+```{r staf summary}
+ts <- att_tb %>%
+  filter(month(DATE) == mth) %>% 
+  mutate("MGU" = isoweek(DATE)) %>% 
+  group_by(MGU) %>% 
+  summarise("DUTY"=sum(DUTY, na.rm=TRUE),"RD"=sum(RD, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),"AL"=sum(AL, na.rm=TRUE),
+            "EL"=sum(EL, na.rm=TRUE),"MC"=sum(MC, na.rm=TRUE),
+            "PH"=sum(PH, na.rm=TRUE),"RPH"=sum(RPH, na.rm=TRUE),
+            "CH"=sum(CH, na.rm=TRUE),"UPL"=sum(UPL, na.rm=TRUE),
+            "CL"=sum(CL, na.rm=TRUE),"NS"=sum(NS, na.rm=TRUE),
+            "AB"=sum(AB, na.rm=TRUE),"ML"=sum(ML, na.rm=TRUE),
+            "RN"=sum(RN, na.rm=TRUE),"TM"=sum(TM, na.rm=TRUE))
+```
+
+# Jadual-1 Penugasan Staf (Mingguan)
+
+```{r}
+
+ts %>% 
+  group_by(MGU) %>% 
+summarise("DUTY"=sum(DUTY, na.rm=TRUE),"RD"=sum(RD, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),"AL"=sum(AL, na.rm=TRUE),
+            "EL"=sum(EL, na.rm=TRUE),"MC"=sum(MC, na.rm=TRUE),
+            "PH"=sum(PH, na.rm=TRUE),"RPH"=sum(RPH, na.rm=TRUE),
+            "CH"=sum(CH, na.rm=TRUE),"UPL"=sum(UPL, na.rm=TRUE),
+            "CL"=sum(CL, na.rm=TRUE),"NS"=sum(NS, na.rm=TRUE),
+            "AB"=sum(AB, na.rm=TRUE),"ML"=sum(ML, na.rm=TRUE),
+            "RN"=sum(RN, na.rm=TRUE),"TM"=sum(TM, na.rm=TRUE)) %>%
+  kable()
+
+```
+
+### Carta 1 - Penugasan Staf (Mingguan)
+
+```{r carta-1}
+ts %>% 
+summarise("DUTY"=sum(DUTY, na.rm=TRUE),"RD"=sum(RD, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),
+            "RO"=sum(RO, na.rm=TRUE),"AL"=sum(AL, na.rm=TRUE),
+            "EL"=sum(EL, na.rm=TRUE),"MC"=sum(MC, na.rm=TRUE),
+            "PH"=sum(PH, na.rm=TRUE),"RPH"=sum(RPH, na.rm=TRUE),
+            "CH"=sum(CH, na.rm=TRUE),"UPL"=sum(UPL, na.rm=TRUE),
+            "CL"=sum(CL, na.rm=TRUE),"NS"=sum(NS, na.rm=TRUE),
+            "AB"=sum(AB, na.rm=TRUE),"ML"=sum(ML, na.rm=TRUE),
+            "RN"=sum(RN, na.rm=TRUE),"TM"=sum(TM, na.rm=TRUE)) %>%
+  tidyr::gather() %>% # tidyr::gather("JENIS","JUMLAH",2:3)
+  ggplot(aes(x = key, fill = key, na.rm = TRUE, y = value)) +
+  geom_bar(stat="identity") +
+  geom_text(aes(label=format(value,digits = 3,big.mark=",")),vjust=1.5, color="black",
+            size=3.5) +
+  xlab("Kategori") + ylab("Bil") +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5))
+```
+
+### Carta 1A - DUTY
+
+```{r carta-1AB}
+if (any(ts[,"DUTY"]!=0)){
+  ts %>%
+  tschart(y = "DUTY")
+}
+```
+
+### Carta 1B - RD
+
+```{r carta-1A}
+if (any(ts[,"RD"]!=0)){
+  ts %>%
+  tschart(y = "RD")
+}
+```
+
+### Carta 1C - RO
+
+```{r carta-1B}
+if (any(ts[,"RO"]!=0)){
+  ts %>%
+  tschart(y = "RO")
+}
+```
+
+### Carta 1D - AL
+
+```{r carta-1C}
+if (any(ts[,"AL"]!=0)){
+  ts %>%
+  tschart(y = "AL")
+}
+```
+
+### Carta 1E - EL
+
+```{r carta-1D}
+if (any(ts[,"EL"]!=0)){
+  ts %>%
+  tschart(y = "EL")
+}
+```
+
+### Carta 1F - MC
+
+```{r carta-1E}
+if (any(ts[,"MC"]!=0)){
+  ts %>%
+  tschart(y = "MC")
+}
+```
+
+### Carta 1G - PH
+
+```{r carta-1F}
+if (any(ts[,"PH"]!=0)){
+  ts %>%
+  tschart(y = "PH")
+}
+```
+
+### Carta 1H - RPH
+
+```{r carta-1G}
+if (any(ts[,"RPH"]!=0)){
+  ts %>%
+  tschart(y = "RPH")
+}
+```
+
+### Carta 1I - CH
+
+```{r carta-1H}
+if (any(ts[,"CH"]!=0)){
+  ts %>%
+  tschart(y = "CH")
+}
+```
+
+### Carta 1J - UPL
+
+```{r carta-1I}
+if (any(ts[,"UPL"]!=0)){
+  ts %>%
+  tschart(y = "UPL")
+}
+```
+
+### Carta 1M - AB
+
+```{r carta-1L}
+if (any(ts[,"AB"]!=0)){
+  ts %>%
+  tschart(y = "AB")
+}
+```
+
+### Carta 1N - ML
+
+```{r carta-1M}
+if (any(ts[,"ML"]!=0)){
+  ts %>%
+  tschart(y = "ML")
+}
+```
+
+### Carta 1O - RN
+
+```{r carta-1N}
+if (any(ts[,"RN"]!=0)){
+  ts %>%
+  tschart(y = "RN")
+}
+```
+
+### Carta 1P - TM
+
+```{r carta-1O}
+if (any(ts[,"TM"]!=0)){
+  ts %>%
+  tschart(y = "TM")
+}
+```
+
+## 2.    Penyata Bankuet
+
+### Jadual 2 - Pendapatan / Perbelanjaan dan Jenis (Mingguan)
+
+```{r jadual 2}
+bqt.sum %>% 
+  group_by(JENIS) %>%
+  summarise("PENDAPATAN" = round(sum(PENDAPATAN, na.rm=TRUE),0), 
+            "PERBELANJAAN" = round(sum(PERBELANJAAN, na.rm=TRUE),0),
+            "NET" = sum(PENDAPATAN - PERBELANJAAN)) %>%
+  knitr::kable(digits = 2)
+```
+
+### Carta 2 - Pendapatan dan Perbelanjaan (Mingguan)
+
+```{r carta 2}
+# Revenue and Exp by Week
+bqt.sum %>%
+  group_by(MGU) %>%
+  summarise("PENDAPATAN" = round(sum(PENDAPATAN, na.rm=TRUE),0),
+            "PERBELANJAAN" = round(sum(PERBELANJAAN, na.rm=TRUE),0),
+            "NET" = PENDAPATAN - PERBELANJAAN) %>% 
+  tidyr::gather(JENIS,VALUE,2:4) %>%
+  ggplot(aes(x = MGU, fill = JENIS, na.rm = TRUE, y = VALUE)) +
+  geom_bar(stat="identity",position = position_dodge(width = 0.5)) +
+  geom_text(aes(label=format(VALUE,digits = 3,big.mark=",")), vjust=1.6, color="black",
+            size=3.5) +
+  xlab("Minggu") + ylab("JUMLAH (RM)") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+### Carta 2A - Bilangan Majlis dan Acara (Mingguan)
+
+```{r carta-2A}
+bqt.sum %>%
+  group_by(JENIS,MGU,NOEVENT) %>%
+  ggplot(aes(x = MGU, fill = JENIS, na.rm = TRUE, y = NOEVENT)) +
+  geom_bar(stat="identity",position = position_dodge(width = 0.5)) +
+  geom_text(aes(label=format(NOEVENT,digits = 3,big.mark=",")), vjust=1.6, color="black",
+            size=3.5) +
+  xlab("Minggu") + ylab("Bil") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+### Carta 2B - Pendapatan Majlis dan Acara (Mingguan)
+
+```{r carta 2B}
+# Revenue of Event by type
+bqt.sum %>%
+  group_by(MGU,JENIS) %>% 
+  summarise("PENDAPATAN" = round(sum(PENDAPATAN, na.rm=TRUE),digits = 0)) %>%
+  tschart(y = "PENDAPATAN", fillvar = "JENIS")
+```
+
+### Carta 2C - Perbelanjaan Majlis dan Acara (Mingguan)
+
+```{r carta 2C}
+# Revenue of Event by type
+bqt.sum %>%
+  group_by(MGU,JENIS) %>% 
+  summarise("PERBELANJAAN" = round(sum(PERBELANJAAN, na.rm=TRUE),digits = 0)) %>%
+  tschart(y = "PERBELANJAAN", fillvar = "JENIS")
+```
+
+## 3.    Penyata Perbelanjaan
+
+### Jadual 3 - Perbelanjaan dan Jenis (Mingguan)
+
+```{r jadual 3}
+exp.sum %>% 
+  group_by(MGU, JENIS) %>%
+  summarise("JUMLAH" = sum(JUMLAH)) %>%
+  spread(JENIS,JUMLAH) %>% 
+  kable()
+```
+
+### Carta 3 - Perbelanjaan dan Jenis (Mingguan)
+
+```{r carta 3}
+exp.sum %>%
+  group_by(JENIS,MGU) %>%
+  summarise("BELANJA" = sum(JUMLAH)) %>% 
+  ggplot(aes(x = factor(MGU), fill = JENIS, na.rm = TRUE, y = BELANJA)) +
+  geom_bar(stat="identity",position = position_dodge(width = 0.5)) +
+  geom_text(aes(label=format(BELANJA,digits = 3,big.mark=",")),
+            hjust=0.1, vjust=0.5, color="black",
+            size=3.5) +
+  xlab("Minggu") + ylab("JUMLAH(RM)") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+## 4.    Ringkasan Pekerja Separuh Masa
+
+### Jadual 4 - Pekerja Separuh Masa (PSM) (Mingguan)
+
+```{r jadual 4}
+
+psm_tb %>%
+  filter(month(DATE) == mth) %>%
+  mutate("MGU" = isoweek(DATE)) %>% 
+  group_by(MGU) %>% 
+  summarise( "ACARA" = n(),"PSM" = sum(PSM)) %>% 
+  knitr::kable()
+```
+
+### Carta 4 - Pekerja Separuh Masa (PSM) (Mingguan)
+
+```{r carta 4}
+psm_tb %>%
+  filter(month(DATE) == mth) %>%
+  mutate("MGU" = isoweek(DATE)) %>% 
+  group_by(MGU) %>% 
+  summarise("PSM" = sum(PSM), "ACARA" = n()) %>%
+  tidyr::gather("JENIS","JUMLAH",2:3) %>%
+  tschart(y = "JUMLAH", fillvar = "JENIS")
+```
+
+## Rumusan dan Cadangan
+

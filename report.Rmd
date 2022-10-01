@@ -1,0 +1,78 @@
+---
+title: "Laporan F&B"
+author: "Nurul Amira Najwa"
+date: '`r Sys.Date()`' 
+output: word_document
+params:
+  emp.tb: emp_tb
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	comment = NA
+)
+
+# Init ----
+
+library(dplyr)
+library(knitr)
+
+# Dataset for report ----
+emp_tb <- params$emp.tb
+```
+
+## Analisis
+
+```{r summary}
+# Total Reg hr by employee
+# chart total (hour) by type ----
+ts <- emp_tb %>%
+  summarise("Regular" = sum(rh), "Overtime" = sum(ot),
+            "Sick" = sum(sl), "Vacation" = sum(vc))
+
+# gather col into rows
+ts <- ts %>% tidyr::gather(key = "type")
+kable(ts)
+```
+
+## Carta 1 - Keseluruhan
+
+```{r carta-1}
+ggplot(ts, aes(x = type, fill = type, na.rm = TRUE, y=value)) +
+  geom_bar(stat="identity") +
+  geom_text(aes(label=format(value,digits = 3,big.mark=",")), vjust=1.6, color="white",
+            size=3.5) +
+  xlab("Type") + ylab("Hour") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+## Carta 2 - Regular hr by employee
+
+```{r carta-2}
+ggplot(emp_tb, aes(x = emp, fill = emp, na.rm = TRUE, y=rh)) +
+  geom_bar(stat="identity") + 
+  geom_text(aes(label=format(rh,digits = 3,big.mark=",")), vjust=1.6, color="white",
+            size=3.5) +
+  xlab("Employee") + ylab("Regular") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+## Carta 2a - Frequency of Regular Hour
+
+```{r carta-2a}
+rh <- table(emp_tb$rh) %>% data.frame()
+
+ggplot(rh, aes(Var1,Freq,fill = Var1)) +
+  geom_bar(stat="identity") + 
+  geom_text(aes(label=format(Freq,digits = 3,big.mark=",")), vjust=1.6, color="black",
+            size=3.5) +
+  xlab("Regular (Hour)") + ylab("Freq") +
+  theme(axis.text.x=element_text(hjust=1,vjust=0.5))
+
+```
+
+
+## Rumusan
